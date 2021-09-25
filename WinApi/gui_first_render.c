@@ -68,7 +68,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     PAINTSTRUCT ps;
     RECT *rect;
     char buff[16];
-    int sz;
+    char buff2[20];
 
     switch (message) {
         case WM_KEYDOWN:
@@ -88,18 +88,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             COLORREF color = RGB(rand() % 255, rand() % 255,rand() % 255);
             HPEN pen = CreatePen(PS_SOLID, 2, color);
 
-            SetTextColor(hDC, color);
-            SetBkMode(hDC, TRANSPARENT);
-            sz = wsprintf(buff, "(%d, %d)", LOWORD(lParam), HIWORD(lParam));
-            TextOut(hDC, LOWORD(lParam), HIWORD(lParam), buff, sz);
-
-            SelectObject(hDC, pen);
-            //SetPixel(hDC, LOWORD(lParam), HIWORD(lParam), RGB(255,0,255));
-
-            
             SelectObject(hDC, pen);
             MoveToEx(hDC, 100, 100, NULL);
             LineTo(hDC, LOWORD(lParam), HIWORD(lParam));
+
+            SetTextColor(hDC, color);
+            SetBkMode(hDC, TRANSPARENT);
+            DWORD sz = wsprintf(buff, "XY(%d, %d)", LOWORD(lParam), HIWORD(lParam));
+            DWORD sz2 = wsprintf(buff2, "RGB(%d, %d, %d)", GetRValue(color), GetGValue(color), GetBValue(color));
+            TextOut(hDC, LOWORD(lParam), HIWORD(lParam), buff, sz);
+            TextOut(hDC, LOWORD(lParam), HIWORD(lParam) + 20, buff2, sz2);
+
+            //SetPixel(hDC, LOWORD(lParam), HIWORD(lParam), RGB(255,0,255));
 
             ReleaseDC(hWnd, hDC);
             break;
