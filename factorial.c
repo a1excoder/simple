@@ -16,4 +16,6 @@ int main(void) {
 		if (z == 0) break;
 		printf("factorial(%d) = %d\n", z, factorial(z));
 	}
+	
+	return 0;
 }
