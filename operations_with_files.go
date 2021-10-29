@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"io"
+	"bufio"
 )
 
 func Write(fname, query string) error {
@@ -59,12 +60,19 @@ func main() {
 
 		return
 	}
+
+	GetData := func() (string) {
+		fmt.Print("Enter data: ")
+		data := bufio.NewScanner(os.Stdin)
+		data.Scan()
+		return data.Text()
+	}
 	var option int8
 
 	for {
 		fmt.Print("read from file: `1` write: `2` create `3` exit `0`: ")
 		fmt.Fscan(os.Stdin, &option)
-		
+
 
 		switch (option) {
 		case 1:
@@ -79,16 +87,12 @@ func main() {
 				fmt.Print(string(data))
 			}
 		case 2:
-			fname := GetName()
-			var data string
-
-			fmt.Print("Enter data: ")
-			fmt.Fscan(os.Stdin, &data) // catch only one word
-			err := Write(fname, data)
-
-			if (err != nil) {
-				fmt.Printf("[ERROR] - %s\n", err)
+			err := Write(GetName(), GetData())
+			if err != nil {
+				fmt.Println(err)
+				break
 			}
+
 		case 3:
 			err := Create(GetName())
 			if (err != nil) {
