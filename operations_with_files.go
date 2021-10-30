@@ -61,11 +61,11 @@ func main() {
 		return
 	}
 
-	GetData := func() (string) {
+	GetData := func() (string, error) {
 		fmt.Print("Enter data: ")
-		data := bufio.NewScanner(os.Stdin)
-		data.Scan()
-		return data.Text()
+		rdr := bufio.NewReader(os.Stdin)
+		str, err := rdr.ReadString('\n')
+		return str, err
 	}
 	var option int8
 
@@ -87,9 +87,16 @@ func main() {
 				fmt.Print(string(data))
 			}
 		case 2:
-			err := Write(GetName(), GetData())
+			fname := GetName()
+			fdata, err := GetData()
 			if err != nil {
-				fmt.Println(err)
+				fmt.Printf("[ERROR] - %s\n", err)
+				break
+			}
+
+			err = Write(fname, fdata)
+			if err != nil {
+				fmt.Printf("[ERROR] - %s\n", err)
 				break
 			}
 
