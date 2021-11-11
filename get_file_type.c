@@ -35,10 +35,8 @@ enum TYPES get_file_name(const char *full_name) {
 	}
 	char str_type[strsize - size_to_dot];
 
-	int j = 0;
-	for (int i = size_to_dot; i < strsize; i++) {
+	for (int i = size_to_dot, j = 0; i < strsize; i++, j++) {
 		str_type[j] = *((full_name - strsize-1) + i);
-		j++;
 	}
 
 	return check_type_by_str(str_type);
