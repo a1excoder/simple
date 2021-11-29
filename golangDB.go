@@ -24,6 +24,14 @@ func main() {
 	}
 	defer db.Close()
 
+	db.Exec(`CREATE TABLE "car" (
+		"id"	INTEGER NOT NULL UNIQUE,
+		"name"	TEXT,
+		"model"	TEXT,
+		"ruler"	TEXT,
+		PRIMARY KEY("id" AUTOINCREMENT)
+	);`)
+
 	var slct_code int
 	var id int64
 	car_struct := Car{}
