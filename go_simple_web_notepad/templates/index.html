@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple web notepad</title>
+    <style>
+        .note {
+            border: 2px double black;
+            padding: 2px;
+            margin: 10px;
+            width: 400px;
+        }
+    </style>
+</head>
+<body style="background-color: dimgray; color: white;">
+
+    <p>add note</p>
+    <form action="/addnote" method="post" class="form-add">
+        <input type="text" name="title" class="form-add-title" placeholder="title">
+        <br>
+        <textarea name="query" class="form-add-query" cols="30" rows="10" placeholder="query"></textarea>
+        <br>
+        <button type="submit">add</button>
+    </form>
+    
+   <div class="notes">
+       {{range .}}
+    <div class="note">
+        <h3 class="note-id-title"><b>{{ .Id}}</b>: {{ .Title}}</h3>
+        <p class="note-query">{{ .Query}}</p>
+        <form action="/deletenote" method="post">
+            <input type="hidden" name="id" value="{{ .Id}}">
+            <button type="submit">delete</button>
+        </form>
+    </div>
+    {{else}}
+    <h4>Notes not found.</h4>
+    {{end}}
+
+   </div>
+
+</body>
+</html>
