@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update note</title>
+    <style>
+        .note {
+            border: 2px double black;
+            padding: 2px;
+            margin: 10px;
+            width: 400px;
+        }
+    </style>
+</head>
+<body style="background-color: dimgray; color: white;">
+
+    <p>update note</p>
+    <form action="/updatenote/success" method="post" class="form-add">
+        <input type="hidden" name="id" value="{{ .Id}}">
+        <input type="text" name="title" class="form-add-title" placeholder="title" value="{{ .Title}}">
+        <br>
+        <textarea name="query" class="form-add-query" cols="30" rows="10" placeholder="query">{{ .Query}}</textarea>
+        <br>
+        <button type="submit">update</button>
+    </form>
+
+</body>
+</html>

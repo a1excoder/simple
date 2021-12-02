@@ -34,11 +34,14 @@
             <input type="hidden" name="id" value="{{ .Id}}">
             <button type="submit">delete</button>
         </form>
+        <form action="/updatenote" method="post">
+            <input type="hidden" name="id" value="{{ .Id}}">
+            <button type="submit">update</button>
+        </form>
     </div>
-    {{else}}
+{{else}}
     <h4>Notes not found.</h4>
-    {{end}}
-
+{{end}}
    </div>
 
 </body>

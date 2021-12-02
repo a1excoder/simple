@@ -67,7 +67,6 @@ func main() {
 			}
 			temp_id++
 		}
-		fmt.Printf("len: %d | cap: %d\n", len(Notes), cap(Notes))
 
 		tmpl.Execute(rw, Notes)
 	})
@@ -106,6 +105,50 @@ func main() {
 				}
 			}
 
+		}
+	})
+
+	http.HandleFunc("/updatenote", func(rw http.ResponseWriter, r *http.Request) {
+		note_id, err := strconv.Atoi(r.FormValue("id"))
+		TempNote := Note{}
+		if err != nil {
+			fmt.Fprint(rw, err)
+		} else {
+			row := db.QueryRow("select * from notes where id = $1", note_id)
+			err := row.Scan(&TempNote.Id, &TempNote.Title, &TempNote.Query)
+			if err != nil {
+				fmt.Fprint(rw, "<p style=\"color: red;\">note not found.<br><a href=\"/\">back</a></p>")
+			} else {
+
+				tmpl, err := template.ParseFiles("./templates/update.html")
+				if err != nil {
+					panic(err)
+				}
+				tmpl.Execute(rw, TempNote)
+			}
+		}
+	})
+
+	http.HandleFunc("/updatenote/success", func(rw http.ResponseWriter, r *http.Request) {
+		note_id, err := strconv.Atoi(r.FormValue("id"))
+		note_title, note_query := r.FormValue("title"), r.FormValue("query")
+		var temp_id int
+		if err != nil {
+			fmt.Fprint(rw, err)
+		} else {
+			row := db.QueryRow("select id from notes where id = $1", note_id)
+			err := row.Scan(&temp_id)
+			if err != nil {
+				fmt.Fprint(rw, "<p style=\"color: red;\">note not found.<br><a href=\"/\">back</a></p>")
+			} else {
+				_, err := db.Exec("update notes set title = $1, query = $2 where id = $3", note_title, note_query, note_id)
+				if err != nil {
+					fmt.Fprint(rw, "<p style=\"color: red;\">note wasn't updated.<br><a href=\"/\">back</a></p>")
+					fmt.Print(err)
+				} else {
+					fmt.Fprintf(rw, "<p style=\"color: green;\">note id(%d) was updated.<br><a href=\"/\">back</a></p>", temp_id)
+				}
+			}
 		}
 	})
 
