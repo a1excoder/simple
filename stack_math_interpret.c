@@ -75,9 +75,50 @@ void stack_destroy(struct vm_state* vs) {
 
     while (res.status) {
         res = pop(&vs->stack);
-        if (res.status) printf("destroy | pop(%" PRId64 ")", res.data);
+        if (res.status) printf("destroy | pop(%" PRId64 ")\n", res.data);
     }
 }
+
+typedef void (*stack_func_type) (struct vm_state*, size_t);
+
+void interpret_push(struct vm_state* state, size_t command_index) {
+    push(&state->stack, state->commands[command_index].as_arg64.arg);
+}
+
+void interpret_iprint(struct vm_state* state, size_t command_x) {
+    struct result_data temp_res = pop(&state->stack);
+    if (temp_res.status) {
+        printf("%" PRId64 "\n", temp_res.data);
+        push(&state->stack, temp_res.data);
+    }
+}
+
+void interpret_iread(struct vm_state* state, size_t command_x) {
+    int64_t temp_i64;
+    scanf_s("%" SCNd64, &temp_i64);
+    push(&state->stack, temp_i64);
+}
+
+void interpret_iadd(struct vm_state* state, size_t command_x) {
+    int64_t temp_i64 = 0, temp_i64_2 = 0;
+
+    struct result_data temp_res = pop(&state->stack);
+    if (temp_res.status) temp_i64 = temp_res.data;
+    else return;
+
+    temp_res = pop(&state->stack);
+    if (temp_res.status) temp_i64_2 = temp_res.data;
+    else return;
+
+    push(&state->stack, temp_i64 + temp_i64_2);
+}
+
+stack_func_type my_funcs[] = {
+    [BC_PUSH] = interpret_push,
+    [BC_IPRINT] = interpret_iprint,
+    [BC_IREAD] = interpret_iread,
+    [BC_IADD] = interpret_iadd
+};
 
 void interpret(struct vm_state data) {
     int64_t temp_i64 = 0, temp_i64_2 = 0;
@@ -86,30 +127,16 @@ void interpret(struct vm_state data) {
     for (size_t i = 0; i < data.commands_number; i++) {
         switch (data.commands[i].opcode) {
         case BC_PUSH:
-            push(&data.stack, data.commands[i].as_arg64.arg);
+            my_funcs[BC_PUSH](&data, i);
             break;
         case BC_IPRINT:
-            temp_res = pop(&data.stack);
-            if (temp_res.status) {
-                printf("%" PRId64 "\n", temp_res.data);
-                push(&data.stack, temp_res.data);
-            }
+            my_funcs[BC_IPRINT](&data, 0);
             break;
         case BC_IREAD:
-            scanf_s("%" SCNd64, &temp_i64);
-            push(&data.stack, temp_i64);
+            my_funcs[BC_IREAD](&data, 0);
             break;
         case BC_IADD:
-            temp_res = pop(&data.stack);
-            if (temp_res.status) {
-                temp_i64 = temp_res.data;
-            } else break;
-            temp_res = pop(&data.stack);
-            if (temp_res.status) {
-                temp_i64_2 = temp_res.data;
-            } else break;
-
-            push(&data.stack, temp_i64 + temp_i64_2);
+            my_funcs[BC_IADD](&data, 0);
             break;
         case BC_STOP:
             i = data.commands_number;
@@ -120,7 +147,6 @@ void interpret(struct vm_state data) {
     }
     stack_destroy(&data);
 }
-
 
 int main(int argc, char const *argv[])
 {
