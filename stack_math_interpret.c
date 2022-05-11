@@ -3,8 +3,7 @@
 #include <stdbool.h>
 #include <inttypes.h>
 
-
-enum opcode { BC_PUSH, BC_IPRINT, BC_IREAD, BC_IADD, BC_STOP };
+enum opcode { BC_PUSH, BC_IPRINT, BC_IREAD, BC_IADD, BC_ISUB, BC_IMUL, BC_IDIV, BC_ICMP, BC_INEG, BC_SWAP, BC_DUP, BC_STOP };
 
 struct stack_list {
     int64_t data;
@@ -36,6 +35,9 @@ struct result_data {
     int64_t data;
     bool status;
 };
+
+typedef void (*stack_func_type) (struct vm_state*);
+
 
 bool push(struct stack_list** list, int64_t data) {
     bool status = false;
@@ -69,7 +71,6 @@ struct result_data pop(struct stack_list** list) {
     return data;
 }
 
-
 void stack_destroy(struct vm_state* vs) {
     struct result_data res = {.status = true};
 
@@ -79,68 +80,162 @@ void stack_destroy(struct vm_state* vs) {
     }
 }
 
-typedef void (*stack_func_type) (struct vm_state*, size_t);
-
-void interpret_push(struct vm_state* state, size_t command_index) {
-    push(&state->stack, state->commands[command_index].as_arg64.arg);
+void lift_unop( struct stack_list** s, int64_t (f)(int64_t)) {
+    struct result_data res = pop(s);
+    if (res.status) push(s, f(res.data));
 }
 
-void interpret_iprint(struct vm_state* state, size_t command_x) {
+void lift_binop( struct stack_list** s, int64_t (f)(int64_t, int64_t)) {
+    int64_t temp_i64 = 0, temp_i64_2 = 0;
+
+    struct result_data res = pop(s);
+    if (res.status) temp_i64 = res.data;
+    else return;
+
+    res = pop(s);
+    if (res.status) temp_i64_2 = res.data;
+    else return;
+
+    push(s, f(temp_i64, temp_i64_2));
+}
+
+int64_t i64_add(int64_t a, int64_t b) { return a + b; }
+int64_t i64_sub(int64_t a, int64_t b) { return a - b; }
+int64_t i64_mul(int64_t a, int64_t b) { return a * b; }
+int64_t i64_div(int64_t a, int64_t b) { return a / b; }
+int64_t i64_cmp(int64_t a, int64_t b) { if (a > b) return 1; else if (a < b) return -1; return 0; }
+
+int64_t i64_neg(int64_t a) { return -a; }
+
+void interpret_iadd( struct vm_state* state ) {
+    lift_binop(&state->stack, i64_add);
+    state->commands = state->commands + 1;
+}
+
+void interpret_isub( struct vm_state* state ) {
+    lift_binop(&state->stack, i64_sub);
+    state->commands = state->commands + 1;
+}
+
+void interpret_imul( struct vm_state* state ) {
+    lift_binop(&state->stack, i64_mul);
+    state->commands = state->commands + 1;
+}
+void interpret_idiv( struct vm_state* state ) {
+    lift_binop(&state->stack, i64_div);
+    state->commands = state->commands + 1;
+}
+void interpret_icmp( struct vm_state* state ) {
+    lift_binop(&state->stack, i64_cmp);
+    state->commands = state->commands + 1;
+}
+
+void interpret_ineg( struct vm_state* state) {
+    lift_unop (& state->stack, i64_neg);
+    state->commands = state->commands + 1;
+}
+
+void interpret_push(struct vm_state* state) {
+    push(&state->stack, state->commands->as_arg64.arg);
+    state->commands = state->commands + 1;
+}
+
+void interpret_iprint(struct vm_state* state) {
     struct result_data temp_res = pop(&state->stack);
     if (temp_res.status) {
         printf("%" PRId64 "\n", temp_res.data);
         push(&state->stack, temp_res.data);
     }
+
+    state->commands = state->commands + 1;
 }
 
-void interpret_iread(struct vm_state* state, size_t command_x) {
+void interpret_iread(struct vm_state* state) {
     int64_t temp_i64;
     scanf_s("%" SCNd64, &temp_i64);
     push(&state->stack, temp_i64);
+
+    state->commands = state->commands + 1;
 }
 
-void interpret_iadd(struct vm_state* state, size_t command_x) {
+void interpret_swap(struct vm_state* state) {
     int64_t temp_i64 = 0, temp_i64_2 = 0;
-
-    struct result_data temp_res = pop(&state->stack);
-    if (temp_res.status) temp_i64 = temp_res.data;
+    struct result_data res = pop(&state->stack);
+    if (res.status) temp_i64 = res.data;
     else return;
 
-    temp_res = pop(&state->stack);
-    if (temp_res.status) temp_i64_2 = temp_res.data;
+    res = pop(&state->stack);
+    if (res.status) temp_i64_2 = res.data;
     else return;
 
-    push(&state->stack, temp_i64 + temp_i64_2);
+    push(&state->stack, temp_i64);
+    push(&state->stack, temp_i64_2);
+
+    state->commands = state->commands + 1;
+}
+
+void interpret_dup(struct vm_state* state) {
+    struct result_data res = pop(&state->stack);
+    if (res.status) {
+        push(&state->stack, res.data);
+        push(&state->stack, res.data);
+    }
 }
 
 stack_func_type my_funcs[] = {
     [BC_PUSH] = interpret_push,
     [BC_IPRINT] = interpret_iprint,
     [BC_IREAD] = interpret_iread,
-    [BC_IADD] = interpret_iadd
+    [BC_IADD] = interpret_iadd,
+    [BC_ISUB] = interpret_isub,
+    [BC_IMUL] = interpret_imul,
+    [BC_IDIV] = interpret_idiv,
+    [BC_ICMP] = interpret_icmp,
+    [BC_INEG] = interpret_ineg,
+    [BC_SWAP] = interpret_swap,
+    [BC_DUP] = interpret_dup
 };
 
 void interpret(struct vm_state data) {
     int64_t temp_i64 = 0, temp_i64_2 = 0;
     struct result_data temp_res;
 
-    for (size_t i = 0; i < data.commands_number; i++) {
-        switch (data.commands[i].opcode) {
+    for (;;) {
+        switch (data.commands->opcode) {
         case BC_PUSH:
-            my_funcs[BC_PUSH](&data, i);
+            my_funcs[BC_PUSH](&data);
             break;
         case BC_IPRINT:
-            my_funcs[BC_IPRINT](&data, 0);
+            my_funcs[BC_IPRINT](&data);
             break;
         case BC_IREAD:
-            my_funcs[BC_IREAD](&data, 0);
+            my_funcs[BC_IREAD](&data);
             break;
         case BC_IADD:
-            my_funcs[BC_IADD](&data, 0);
+            my_funcs[BC_IADD](&data);
             break;
+        case BC_ISUB:
+            my_funcs[BC_ISUB](&data);
+            break;
+        case BC_IMUL:
+            my_funcs[BC_IMUL](&data);
+            break;
+        case BC_IDIV:
+            my_funcs[BC_IDIV](&data);
+            break;
+        case BC_ICMP:
+            my_funcs[BC_ICMP](&data);
+            break;
+        case BC_INEG:
+            my_funcs[BC_INEG](&data);
+            break;
+        case BC_SWAP:
+            my_funcs[BC_SWAP](&data);
+        case BC_DUP:
+            my_funcs[BC_DUP](&data);
         case BC_STOP:
-            i = data.commands_number;
-            break;
+            stack_destroy(&data);
+            return;
         default:
             break;
         }
@@ -148,7 +243,7 @@ void interpret(struct vm_state data) {
     stack_destroy(&data);
 }
 
-int main(int argc, char const *argv[])
+int main(void)
 {
     const union instruction ins[] = {
         {.as_arg64 = {.opcode = BC_PUSH, .arg = 13}},
@@ -157,7 +252,11 @@ int main(int argc, char const *argv[])
         {.as_arg64 = {.opcode = BC_PUSH, .arg = 8}},
         {BC_IADD},
         {BC_IPRINT},
-        {BC_STOP},
+        {.as_arg64 = {.opcode = BC_PUSH, .arg = 2}},
+        {BC_IMUL},
+        {BC_IPRINT},
+        {BC_DUP},
+        {BC_STOP}
     };
 
     struct vm_state data_main = {.commands = ins, .commands_number = sizeof(ins) / sizeof(*ins)};
